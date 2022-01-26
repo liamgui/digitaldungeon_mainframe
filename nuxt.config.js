@@ -24,6 +24,21 @@ export default {
 	css: [
 		
 	],
+
+	// Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
+	plugins: [
+		'~/plugins/objectives.js'
+	],
+	serverMiddleware: [
+		{
+			path: '/webhook/objectives', handler: '~/server-middleware/webhookObjectives'
+		},
+		{
+			path: '/api/objectives', handler: '~/server-middleware/objectives'
+		},
+
+
+	],
 	// Auto import components: https://go.nuxtjs.dev/config-components
 	components: true,
 
@@ -65,4 +80,12 @@ export default {
 
 	// Build Configuration: https://go.nuxtjs.dev/config-build
 	build: {},
+
+	publicRuntimeConfig: {
+	},
+	
+	privateRuntimeConfig: {
+		trelloSecretToken: process.env.TRELLO_TOKEN,
+		trelloKey: process.env.TRELLO_KEY
+	}
 }
