@@ -27,6 +27,7 @@ export default {
 
 	// Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
 	plugins: [
+		'~/plugins/trivia.js',
 		'~/plugins/objectives.js'
 	],
 	serverMiddleware: [
@@ -82,6 +83,12 @@ export default {
 	build: {},
 
 	publicRuntimeConfig: {
+		twitchBotAccessToken: process.env.TWITCH_TOKEN_ACCESS_KEY,
+		twitchBotUsername: process.env.TWITCH_TOKEN_USERNAME,
+		CHANNEL_ID: process.env.CHANNEL_ID,
+		TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
+		TWITCH_APP_ACCESS_TOKEN: process.env.TWITCH_APP_ACCESS_TOKEN,
+		TRIVIA_API_KEY: process.env.TRIVIA_API_KEY,
 	},
 	
 	privateRuntimeConfig: {
