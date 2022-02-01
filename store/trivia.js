@@ -1,5 +1,6 @@
 export const state = () => ({
 	categories: {},
+	triviaRunning: false
 })
 
 export const mutations = {

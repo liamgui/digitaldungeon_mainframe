@@ -1,7 +1,7 @@
 // import { Categories } from ""
 
-export default function({ store }, inject) {
-	
+export default function({store}, inject) {
+	// console.log($emit);
 	const Trivia = {
 
 		getTrivia: async () => {
@@ -13,7 +13,7 @@ export default function({ store }, inject) {
 				// 	headers: { 'X-Api-Key': $config.TRIVIA_API_KEY},
 				// 	contentType: 'application/json',
 			// });
-			let cats = Object.entries(store.getters.categories).join();
+			let cats = Object.entries(store.getters['trivia/categories']).join();
 			const response = await fetch(`https://api.trivia.willfry.co.uk/questions?limit=10&categories=${cats}`, {
 				method: 'GET',
 				contentType: 'application/json',
@@ -30,6 +30,10 @@ export default function({ store }, inject) {
 			return trivia;
 		},
 
+		startTrivia: async () => {
+			console.log("start trivia");
+		},
+
 		getChoices(incorrect, correct) {
 			let choices = []
 			if (incorrect.length > 3) {
@@ -38,6 +42,7 @@ export default function({ store }, inject) {
 			choices = this.shuffle([...incorrect, correct]);
 			return choices;
 		},
+		
 		shuffle(array) {
 			let currentIndex = array.length, randomIndex;
 

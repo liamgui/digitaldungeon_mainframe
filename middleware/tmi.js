@@ -21,14 +21,17 @@ const commands = {
 		response: 'Hello from the other side',
 	},
 	answer: {
+		// 1. check if answer is correct,
+		// 2. check if user has already answered - overwrite if so
+		// 3. else and store answer
 		response: ({client, channel, tags, argument}) => {
 			client.say(channel, `${tags.username}'s answer is this: ${argument}`)
 		},
 	},
 	trivia: {
-		mod: true,
+		// mod: true,
 		response: async () => {
-			let trivia = await $nuxt.$trivia.startTrivia();
+			$nuxt.$emit('startTrivia');
 		},
 	},
 	category: {
@@ -73,6 +76,12 @@ const commands = {
 				client.say(channel, `"${argument}" is not an valid category. Please refer to this list for valid categories. || ${categoryTypesArray.join(' | ')}`);
 			}
 		}
+	},
+	scores: {
+
+	},
+	myscore: {
+		
 	}
 }
 
@@ -96,7 +105,7 @@ export default async function ({ store, redirect, $config, $trivia }) {
 
 	const client = new tmi.Client({
 		options: {
-			debug: true,
+			// debug: true,
 			messagesLogLevel: 'info',
 		},
 		connection: {
@@ -109,7 +118,7 @@ export default async function ({ store, redirect, $config, $trivia }) {
 		},
 		channels: ['digital_fortress'],
 	})
-	client.connect().catch(console.error)
+	client.connect().catch(console.error);
 	client.on('message', (channel, tags, message, self) => {
 
 		const isNotBot =
