@@ -20,13 +20,7 @@
       </footer>
     </div>
   </div> -->
-	<div>
-		<h3 class="title is-7 has-text-weight-bold has-text-grey-light is-uppercase">{{ trivia.category }}</h3>
-		{{ trivia.question }}
-		<ol>
-			<li v-for="choice in trivia.choices">{{ choice }}</li>
-		</ol>
-	</div>
+
 </template>
 
 <script>
@@ -37,6 +31,14 @@ export default {
 			type: Object,
 			required: true,
 		},
+		showAnswer: {
+			type: Boolean,
+			required: false
+		}
 	},
 }
 </script>
+
+<style lang="scss">
+
+</style>
