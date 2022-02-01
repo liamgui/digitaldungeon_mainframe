@@ -9,6 +9,7 @@ module.exports = {
   // https://stylelint.io/user-guide/configuration
   rules: {
 	"rule-empty-line-before": null,
-	"selector-class-pattern": null
+	"selector-class-pattern": null,
+	"no-descending-specificity": null
   },
 }
