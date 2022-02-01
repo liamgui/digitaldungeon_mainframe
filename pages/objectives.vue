@@ -6,10 +6,10 @@
 			</h1>
 			<ul v-if="list.length">
 				<li v-for="li in list" :key="li.id">
-					<h2>{{ li.name }}</h2>
 					<div v-if="li.labels.length" class="labels">
 						<div class="objective-label" v-for="label in li.labels" :key="label.id" :class="[label.color]">{{label.name}}</div>
 					</div>
+					<h2>{{ li.name }}</h2>
 					<!-- <ul v-if="li.checkItems">
 						<li v-for="sub in li.check">item</li>
 					</ul> -->
@@ -78,8 +78,8 @@ li {
 
 .objective-label {
 	color: white;
-	margin-top: 0.75rem;
-	padding: 0.2rem 0.5rem;
+	margin-bottom: 0.75rem;
+	padding: 0.1rem 0.5rem;
 	font-weight: bold;
 	font-size: 0.8rem;
 	border-radius: 5px;

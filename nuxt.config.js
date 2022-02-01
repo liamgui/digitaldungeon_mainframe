@@ -32,7 +32,7 @@ export default {
 	],
 	serverMiddleware: [
 		{
-			path: '/webhook/objectives', handler: '~/server-middleware/webhookObjectives'
+			path: '/webhooks/objectives', handler: '~/server-middleware/webhookObjectives'
 		},
 		{
 			path: '/api/objectives', handler: '~/server-middleware/objectives'
