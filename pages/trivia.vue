@@ -13,44 +13,63 @@
 							{{ category }}
 						</li>
 					</ul> -->
-					<button class="button has-background-white" @click="startTrivia">
+					<button
+						class="button has-background-white"
+						@click="startTrivia"
+					>
 						Start Trivia!!!
 					</button>
 				</div>
 			</div>
 		</section>
-		<section class="trivia-box" v-if="trivia.length">
+		<section class="trivia-box" v-if="triviaActive && trivia.length">
 			<div class="trivia-container">
-				<h1 class="question-number">Question {{ activeQuestionNumber }}</h1>
+				<h1 class="question-number">
+					Question {{ activeQuestionNumber }}
+				</h1>
 				<!-- <TriviaQuestion v-if="activeQuestion" class="has-background-light p-5" :trivia="activeQuestion" :showAnswer="inBetweenQuestions"></TriviaQuestion> -->
 				<div :class="{ 'visible-answer': inBetweenQuestions }">
 					<h2 class="category">{{ activeQuestion.category }}</h2>
 					<p class="question">{{ activeQuestion.question }}</p>
 					<ol class="choices">
-						<li v-for="choice in activeQuestion.choices" class="choice" :class="{answer: activeQuestion.correctAnswer == choice}">{{ choice }}
+						<li
+							v-for="choice in activeQuestion.choices"
+							class="choice"
+							:class="{
+								answer: activeQuestion.correctAnswer == choice,
+							}"
+						>
+							{{ choice }}
 						</li>
 					</ol>
 				</div>
 			</div>
+
 			<!-- TIMER -->
-			<div
-				class="timer"
-				v-if="activeQuestion"
-			>
-				<p v-if="inBetweenQuestions"
-					>next question in:</p
-				>
+			<div class="timer" v-if="activeQuestion">
+				<p v-if="inBetweenQuestions && activeQuestionNumber < trivia.length">next question in:</p>
 				<p v-else>time left:</p>
 				<p class="count">{{ timer }}</p>
 			</div>
+			<div class="scores">
+				<div class="columns is-mobile">
+					<div class="column" v-for="score in scores">
+						<h2>Score:</h2>
+						<p>{{ score.username }}</p>
+						<p>{{ score.score }}</p>
+					</div>
+					<!-- <div class="column">
+						<h2>High Score:</h2>
+						<p>{{ highScore }}</p>
+					</div> -->
+				</div>
+			</div>
 		</section>
-		<div class="trivia-json" v-if="trivia.length" >{{ trivia }}</div>
+		<!-- <div class="trivia-json" v-if="trivia.length" >{{ trivia }}</div> -->
 	</main>
 </template>
 
 <script>
-
-
 export default {
 	name: 'Trivia',
 	layout: 'blank',
@@ -65,7 +84,6 @@ export default {
 			// interval: null,
 			// questionsRemaining: null,
 			// inBetweenQuestions: false,
-
 		}
 	},
 	computed: {
@@ -80,113 +98,60 @@ export default {
 		},
 
 		activeQuestionNumber() {
-			if (this.$store.state.trivia.length) {
-				return $store.state.trivia.length - this.$store.state.trivia.questionsRemaining + 1
+			if (this.trivia.length) {
+				return this.trivia.length - this.questionsRemaining + 1
 			} else {
 				return null
 			}
 		},
 
 		trivia() {
-			return this.$store.state.trivia.trivia;
+			return this.$store.state.trivia.trivia
 		},
 
 		timer() {
-			return this.$store.state.trivia.timer;
+			return this.$store.state.trivia.timer
 		},
 
 		activeQuestion() {
-			return this.$store.state.trivia.activeQuestion;
+			return this.$store.state.trivia.activeQuestion
 		},
 
 		interval() {
-			return this.$store.state.trivia.interval;
+			return this.$store.state.trivia.interval
 		},
 
 		questionsRemaining() {
-			return this.$store.state.trivia.questionsRemaining;
+			return this.$store.state.trivia.questionsRemaining
 		},
 
 		inBetweenQuestions() {
-			return this.$store.state.trivia.inBetweenQuestions;
+			return this.$store.state.trivia.inBetweenQuestions
 		},
-		
 
+		triviaActive() {
+			return this.$store.state.trivia.triviaRunning
+		},
 
+		scores() {
+			return this.$store.state.trivia.scoreBoard
+		},
 	},
 	async mounted() {
 		// this.trivia = await this.$trivia.prepareTrivia();
 		// console.log(this.trivia);
 		this.allCategories = (
 			await this.$content('categories').fetch()
-		).categories;
+		).categories
 
 		// this.$nuxt.$on('startTrivia', await $trivia.startTrivia);
 	},
 
 	methods: {
-
 		startTrivia() {
-			this.$store.dispatch('trivia/setupTrivia');
-		}
-		// async startTrivia(event) {
-		// 	console.log("Start Trivia");
-		// 	if (this.$store.state.trivia.triviaRunning) return;
-		// 	if (this.interval) {
-		// 		clearInterval(this.interval);
-		// 	}
-		// 	if (!this.trivia.length) {
-		// 		this.trivia = await this.$trivia.prepareTrivia()
-		// 	}
-		// 	this.activeQuestion = this.trivia[0];
-		// 	console.log(this.$store);
-		// 	this.$store.commit('trivia/toggleTriviaState');
-		// 	this.$store.commit('trivia/setActiveQuestion', this.activeQuestion);
-		// 	this.activeQuestionNo = 1
-		// 	this.questionsRemaining = this.trivia.length
-		// 	// loop through trivia questions
-		// 	// assign active trivia question and pass dynamically into triviaQuestion component
-		// 	this.interval = setInterval(() => {
-		// 		if (this.questionsRemaining > 0) {
-		// 			if (this.timer > 0) {
-		// 				this.timer--
-		// 			} else {
-		// 				this.inBetweenQuestions = !this.inBetweenQuestions
-		// 				if (this.inBetweenQuestions) {
-		// 					//if in between questions
-		// 					//show answer
-		// 					if (this.timer == 5) {
-		// 					}
-		// 					this.timer = offTimer
-		// 				} else {
-		// 					this.questionsRemaining--
-		// 					if (this.questionsRemaining != 0) {
-								
-		// 						// new active question
-		// 						this.activeQuestionNo++
-		// 						this.activeQuestion = this.trivia[this.trivia.length - this.questionsRemaining];
-		// 						this.$store.commit('trivia/setActiveQuestion', this.activeQuestion);
-		// 						// check how long question is and set timer accordingly
-		// 						let wordCount = this.activeQuestion.question.split(' ');
-		// 						if (wordCount.length > 10) { 
-		// 							this.timer = timer + ((wordCount.length - 10) * 2);
-		// 						} else {
-		// 							this.timer = timer;
-		// 						}
-								
-		// 					} else {
-		// 						this.trivia = []
-		// 					}
-		// 				}
-		// 			}
-		// 		} else {
-		// 			this.trivia = []
-		// 			clearInterval(this.interval)
-		// 			console.log('interval cleared')
-		// 		}
-		// 		// console.log(this.timer);
-		// 	}, 1000)
-		// },
+			// this.$store.dispatch('trivia/setupTrivia');
+			this.$trivia.startTrivia()
+		},
 	},
 }
 
@@ -197,7 +162,7 @@ export default {
 <style lang="scss">
 @import url('https://use.typekit.net/mnr3qiz.css');
 
-$dungeon-color: #36F8FF;
+$dungeon-color: #36f8ff;
 
 body {
 	font-family: 'futura-pt';
@@ -208,9 +173,9 @@ body {
 .title:not(:last-child) {
 	margin-bottom: 0;
 }
-	// .active-categories li {
-	// 	margin-bottom: 0;
-	// }
+// .active-categories li {
+// 	margin-bottom: 0;
+// }
 main {
 	position: relative;
 	// margin-top: 5rem;
@@ -232,11 +197,15 @@ ol {
 	}
 }
 .trivia-box {
-	background: rgb(12,12,12);
-	background: linear-gradient(45deg, rgba(12,12,12,1) 48%, rgba(5,13,14,1) 48%);
+	background: rgb(12, 12, 12);
+	background: linear-gradient(
+		45deg,
+		rgba(12, 12, 12, 1) 48%,
+		rgba(5, 13, 14, 1) 48%
+	);
 	width: 450px;
 	// min-height: 650px;
-	height:100vh;
+	height: 100vh;
 	position: absolute;
 }
 .trivia-container {
@@ -247,9 +216,9 @@ ol {
 	color: $dungeon-color;
 	display: inline;
 	position: absolute;
-	// left: -280px;
+	width: 100%;
 	top: -45px;
-	right: -280px;
+	right: -480px;
 	// padding-left: 2rem;
 	// padding-right: 2rem;
 	transform: rotate(90deg);
@@ -307,5 +276,11 @@ ol {
 		display: block;
 		color: $dungeon-color;
 	}
+}
+
+.scores {
+	position: relative;
+	left: 100%;
+	margin-left: 1rem;
 }
 </style>

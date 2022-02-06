@@ -3,13 +3,21 @@ export const state = () => ({
 	triviaRunning: false,
 	scoreBoard: {},
 	answersState: {},
-	activeQuestion: {},
-	trivia: [],
+	activeQuestion: {
+		question: '',
+		choices: [],
+		correctAnswer: '',
+		category: '',
+		id: '',
+		type: '',
+		incorrectAnswers: [],
+	},
+	trivia: [null],
 	interval: null,
-	timer: 0,
+	timer: 10,
 	inBetweenQuestions: false,
 	questionsRemaining: null,
-})
+});
 
 export const mutations = {
 
@@ -39,12 +47,20 @@ export const mutations = {
 		state.scoreBoard = {};
 	},
 
-	setScore(state, { user, score, username }) {
-		state.scoreBoard[user] = score;
+	setScore(state, { userId, score, username }) {
+		let newScore = score;
+		if (state.scoreBoard[userId] && state.scoreBoard[userId].score) {
+			newScore += state.scoreBoard[userId].score;
+		}
+		state.scoreBoard[userId] = {score: newScore, username};
 	},
 
-	setAnswer(state, { user, answer }) {
-		state.answersState[user] = answer;
+	setAnswer(state, { userId, answer, username }) {
+		state.answersState[userId] = {answer, username};
+	},
+
+	resetAnswersState(state) {
+		state.answersState = {};
 	},
 
 	setActiveQuestion(state, question) {
@@ -60,6 +76,9 @@ export const mutations = {
 	},
 
 	storeInterval(state, interval) {
+		if (state.interval) {
+			clearInterval(state.interval);
+		}
 		state.interval = interval;
 	},
 
@@ -78,6 +97,25 @@ export const mutations = {
 
 	setQuestionsRemaining(state, questionsRemaining) {
 		state.questionsRemaining = questionsRemaining;
+	},
+
+	resetTrivia(state) {	
+		state.triviaRunning = false;
+		state.answersState = {};
+		state.activeQuestion = {
+			question: '',
+			choices: [],
+			correctAnswer: '',
+			category: '',
+			id: '',
+			type: '',
+			incorrectAnswers: [],
+		},
+		state.trivia = [];
+		state.interval = null;
+		state.timer = 10;
+		state.inBetweenQuestions = false;
+		state.questionsRemaining = null;
 	}
 
 }
@@ -88,6 +126,9 @@ export const getters = {
 	},
 	trivia: (state) => {
 		return state.trivia;
+	},
+	scores: (state) => {
+		return state.scoreBoard;
 	}
 }
 

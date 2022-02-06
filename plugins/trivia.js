@@ -2,6 +2,8 @@
 
 export default function({store}, inject) {
 	// console.log($emit);
+	let timerCount = 15;
+	let offTimerCount = 7;
 	const Trivia = {
 
 		getTrivia: async () => {
@@ -31,69 +33,111 @@ export default function({store}, inject) {
 		},
 
 		startTrivia: async () => {
-			let timerCount = 10;
-			let offTimerCount = 7;
-			let timer = store.state.trivia.timer;
+			store.commit('trivia/removeInterval');
+			if (!store.state.trivia.isTriviaRunning) { 
+				store.commit('trivia/resetTrivia');
+			}
 
 			// interval?
-			store.commit('trivia/removeInterval');
 			//get trivia
-			store.dispatch('trivia/setupTrivia');
+			console.log('get trivia');
+			await store.dispatch('trivia/setupTrivia');
 			//if trivia is empty??
+			console.log(store.getters['trivia/trivia']);
 			if (!store.getters['trivia/trivia']) return;
 
 			let activeQuestion = store.state.trivia.activeQuestion;
+
+			Trivia.calculateTime();
+			let timer = store.state.trivia.timer;
+
 			
 			let activeQuestionNo = 1;
-			store.commit('trivia/setActiveQuestionNo', activeQuestionNo);
-			let questionsRemaining = trivia.length;
+			// store.commit('trivia/setActiveQuestionNo', activeQuestionNo);
+			store.commit('trivia/setQuestionsRemaining', store.state.trivia.trivia.length);
 			
 			// loop through trivia questions
 			// assign active trivia question and pass dynamically into triviaQuestion component
 			let interval = setInterval(() => {
-				if (questionsRemaining > 0) {
+				if (store.state.trivia.questionsRemaining > 0) {
 					if (store.state.trivia.timer > 0) {
-						store.commit('trivia/setTimer', store.state.trivia.timer--);
+						let timer = store.state.trivia.timer - 1;
+						store.commit('trivia/setTimer', timer);
 					} else {
 						store.commit('trivia/toggleInBetweenQuestions');
 						if (store.state.trivia.inBetweenQuestions) {
 							//if in between questions
-							//show answer
-							if (store.commit('trivia/setTimer', 5)) {
-							}
-							store.commit('trivia/setTimer', offTimer);
-						} else {
-							questionsRemaining--;
-							if (questionsRemaining != 0) {
-								// new active question
-								store.commit('trivia/setActiveQuestionNumber', activeQuestionNo++);
-								store.commit('trivia/setActiveQuestion', trivia[trivia.length - questionsRemaining]);
-								// check how long question is and set timer accordingly
-								let wordCount = store.state.trivia.activeQuestion.question.split(' ');
-								if (wordCount.length > 10) { 
-									store.commit('trivia/setTimer', (timer + ((wordCount.length - 10) * 2)));
-								} else {
-									store.commit('trivia/setTimer', timer);
+							store.commit('trivia/setTimer', offTimerCount);
+
+							// check answers and tally scores
+							let answersState = store.state.trivia.answersState;
+							if (Object.keys(answersState).length !== 0) {
+								for (let userId in answersState) {
+									let user = answersState[userId];
+									let score = 0;
+									if (user.answer === (store.state.trivia.activeQuestion.choices.indexOf(store.state.trivia.activeQuestion.correctAnswer) + 1)) {
+										score++;
+									}
+									store.commit('trivia/setScore', { userId, score, username: user.username });
+
+
+									///////////////////////////////////
+									// let answer = $nuxt.$store.state.trivia.activeQuestion.choices.indexOf($nuxt.$store.activeQuestion.correctAnswer);
+									// if ((answer + 1) == parseInt(argument)) {
+										// $nuxt.$store.commit('trivia/addScore', {
+										// 	user: tags['user-id'],
+										// 	score: 1,
+										// 	username: tags.username
+										// })
+									// 	client.say(channel, `${tags.username} is correct!`)
+									// }
 								}
-								
+							}
+							store.commit('trivia/resetAnswersState');
+							console.log(store.state.trivia.scoreBoard);
+						} else {
+							let questionsRemaining = store.state.trivia.questionsRemaining - 1;
+							store.commit('trivia/setQuestionsRemaining', questionsRemaining);
+							if (store.state.trivia.questionsRemaining != 0) {
+								// new active question
+								// store.commit('trivia/setActiveQuestionNumber', activeQuestionNo++);
+								let nextQuestion = store.state.trivia.trivia[store.state.trivia.trivia.length - store.state.trivia.questionsRemaining];
+								console.log(nextQuestion);
+								store.commit('trivia/setActiveQuestion', nextQuestion);
+								// check how long question is and set timer accordingly
+								Trivia.calculateTime();
 							} else {
-								store.commit('trivia/setTrivia', []);
+								clearInterval(interval);
+								console.log('interval cleared')
+								store.commit('trivia/toggleTriviaState');
 							}
 						}
 					}
 				} else {
-					store.commit('trivia/setTrivia', []);
+					console.log(store.state.trivia.interval);
 					clearInterval(store.state.trivia.interval);
-					state.commit('trivia/storeInterval', null);
-					console.log('interval cleared')
+					store.commit('trivia/storeInterval', null);
+					store.commit('trivia/resetTrivia');
 				}
 				// console.log(this.timer);
 			}, 1000)
 
 			store.commit('trivia/storeInterval', interval);
+		},
 
-
-
+		runTimer() {
+			
+		},
+		//FIXME add 3 more seconds after timer has "ended" in order to catch slower internet connections
+		calculateTime() {
+			let wordCountQuestion = store.state.trivia.activeQuestion.question.split(' ');
+			let wordCountAnswers = store.state.trivia.activeQuestion.choices.join(' ').split(' ');
+			let modifiedTimerCount = timerCount;
+			if ((wordCountQuestion.length + wordCountAnswers.length) > 15) { 
+				modifiedTimerCount += (Math.round((wordCountQuestion.length + wordCountAnswers.length - 10) * 1.5));
+				modifiedTimerCount = modifiedTimerCount > 60 ? 60 : modifiedTimerCount;
+			}
+			store.commit('trivia/setTimer', (modifiedTimerCount));
 		},
 
 		getChoices(incorrect, correct) {

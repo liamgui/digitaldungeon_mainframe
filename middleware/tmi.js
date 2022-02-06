@@ -14,24 +14,51 @@ const categoryTypes = [
 	'society_and_culture'
 ]
 
-const regExpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?(.*)?/)
-
+const regExpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?(.*)?/);
+const answerRegExp = new RegExp(/^([0-9]+)/);
 const commands = {
 	hello: {
 		response: 'Hello from the other side',
 	},
 	answer: {
+		run: () => {
+
+		},
+
 		// 1. check if answer is correct,
 		// 2. check if user has already answered - overwrite if so
 		// 3. else and store answer
-		response: ({client, channel, tags, argument}) => {
-			client.say(channel, `${tags.username}'s answer is this: ${argument}`)
+		multipleChoice: ({client, channel, tags, message}) => {
+			//check if trivia is running
+			if (!$nuxt.$store.state.trivia.triviaRunning || $nuxt.$store.state.trivia.inBetweenQuestions) return;
+			//if message isn't 1-4
+			let userAnswer = parseInt(message);
+			console.log(userAnswer, ' ', typeof userAnswer);
+			let numberOfAnswers = $nuxt.$store.state.trivia.activeQuestion.choices.length;
+			if (message > numberOfAnswers || message < 1) {
+				client.say(channel, `@${tags['display-name']} please enter your choice as a number between 1 and 4;`);
+                return;
+			}
+			
+			if ($nuxt.$store.state.trivia.answersState[tags['user-id']]) {
+				//if user has already answered
+				client.say(channel, `@${tags['display-name']} you have already answered`);
+                // updating answer for user??
+                return;
+			}
+
+            // add users answer to answerState
+            $nuxt.$store.commit('trivia/setAnswer', {userId: tags['user-id'], answer: parseInt(message), username: tags['username']});
+			// console.log($nuxt.$store.state.trivia.answersState);
 		},
 	},
 	trivia: {
-		// mod: true,
+		mod: true,
 		response: async () => {
-			$nuxt.$emit('startTrivia');
+			// $nuxt.$emit('startTrivia');
+
+			//actually call the trivia start function in trivia.js
+			$nuxt.$trivia.startTrivia();
 		},
 	},
 	category: {
@@ -78,10 +105,37 @@ const commands = {
 		}
 	},
 	scores: {
-
+		mod: true,
+		coolDown: 10,
+		response: ({ client, channel, tags, command }) => {
+			let scores = $nuxt.$store.getters["trivia/scores"];
+			let scoresArray = Object.values(scores);
+			//FIXME - output scores in order greatest to least
+			// client.say(channel, `Current Scores: ${scoresArray.join(' | ')}`);
+		}
 	},
 	myscore: {
-		
+
+	}
+}
+
+function coolDownTimer({command, client, channel, tags}) {
+	//FIXME undefined seconds if no scoreboard??
+	let timer = commands[command].coolDown;
+	if ($nuxt.$store.state.tmi.interval[command]) {
+		client.say(channel, `@${tags['display-name']} please wait ${$nuxt.$store.state.tmi.timer[command]} seconds before using this command again`);
+		return;
+	} else {
+		let interval = setInterval(() => {
+			if (timer > 0) {
+				timer--;
+				$nuxt.$store.commit('tmi/setTimer', {command, timer});
+			} else {
+				clearInterval(interval);
+				$nuxt.$store.commit('tmi/resetInterval', command);
+			}
+		}, 1000);
+		$nuxt.$store.commit('tmi/setInterval', {command, interval});
 	}
 }
 
@@ -117,7 +171,7 @@ export default async function ({ store, redirect, $config, $trivia }) {
 			password: `oauth:${$config.twitchBotAccessToken}`,
 		},
 		channels: ['digital_fortress'],
-	})
+	});
 	client.connect().catch(console.error);
 	client.on('message', (channel, tags, message, self) => {
 
@@ -125,17 +179,23 @@ export default async function ({ store, redirect, $config, $trivia }) {
 			tags.username.toLowerCase() !== $config.twitchBotUsername
 		if (self || !isNotBot) return
 
+		if (store.state.trivia.triviaRunning && message.match(answerRegExp)) {
+			commands['answer'].multipleChoice({ tags, message, client, channel });
+		}
+
 		if (message.match(regExpCommand)) {
 			const [raw, command, argument] = message.match(regExpCommand);
-
 			if (commands[command]) {
+				if (commands[command].coolDown) {
+					coolDownTimer({command, client, channel, tags});
+				}
 				if (commands[command].mod && !(tags.badges.moderator || tags.badges.broadcaster)) {
 					console.warn(`Non-moderator tried to access moderator command: ${command}`);
 					return;
 				}
 				const { response } = commands[command]
 				if (typeof response == 'function') {
-					response({ tags, argument, client, channel })
+					response({ tags, argument, client, channel, command })
 				} else if (typeof response == 'string') {
 					client.say(channel, response)
 				}
