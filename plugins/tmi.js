@@ -15,10 +15,17 @@ const categoryTypes = [
 ]
 
 const regExpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?(.*)?/);
-const answerRegExp = new RegExp(/^([0-9]+)/);
+const answerRegExp = new RegExp(/^([0-9]+)$/);
 const commands = {
 	hello: {
-		response: 'Hello from the other side',
+		response: ({client, channel, tags}) => {
+			client.say(channel, `@${tags['display-name']}!! Hello from the other side!`);
+		},
+	},
+	so: {
+		response: ({client, channel, tags, argument}) => {
+			client.say(channel, `Shout out to ${argument}!! Everyone go check out https://twitch.tv/${argument.replace('@', '')}`);
+		}
 	},
 	answer: {
 		run: () => {
@@ -30,30 +37,30 @@ const commands = {
 		// 3. else and store answer
 		multipleChoice: ({client, channel, tags, message}) => {
 			//check if trivia is running
-			if (!$nuxt.$store.state.trivia.triviaRunning || $nuxt.$store.state.trivia.inBetweenQuestions) return;
+			if (!$nuxt.$store.state.trivia.triviaRunning) return;
+			if ($nuxt.$store.state.trivia.inBetweenQuestions && !$nuxt.$store.state.trivia.acceptableBuffer) {
+				client.say(channel, `@${tags['display-name']} please wait until the next question.`);
+				return;
+			}
 			//if message isn't 1-4
-			let userAnswer = parseInt(message);
-			console.log(userAnswer, ' ', typeof userAnswer);
 			let numberOfAnswers = $nuxt.$store.state.trivia.activeQuestion.choices.length;
 			if (message > numberOfAnswers || message < 1) {
 				client.say(channel, `@${tags['display-name']} please enter your choice as a number between 1 and 4;`);
                 return;
 			}
-			
 			if ($nuxt.$store.state.trivia.answersState[tags['user-id']]) {
 				//if user has already answered
-				client.say(channel, `@${tags['display-name']} you have already answered`);
+				client.say(channel, `@${tags['display-name']} you have already answered ${$nuxt.$store.state.trivia.answersState[tags['user-id']].answer}`);
                 // updating answer for user??
                 return;
 			}
 
             // add users answer to answerState
-            $nuxt.$store.commit('trivia/setAnswer', {userId: tags['user-id'], answer: parseInt(message), username: tags['username']});
-			// console.log($nuxt.$store.state.trivia.answersState);
+            $nuxt.$store.commit('trivia/setAnswer', {userId: tags['user-id'], answer: parseInt(message), username: tags['display-name']});
 		},
 	},
 	trivia: {
-		mod: true,
+		// mod: true,
 		response: async () => {
 			// $nuxt.$emit('startTrivia');
 
@@ -107,24 +114,51 @@ const commands = {
 	scores: {
 		mod: true,
 		coolDown: 10,
+		disabled: true,
 		response: ({ client, channel, tags, command }) => {
 			let scores = $nuxt.$store.getters["trivia/scores"];
 			let scoresArray = Object.values(scores);
-			//FIXME - output scores in order greatest to least
-			// client.say(channel, `Current Scores: ${scoresArray.join(' | ')}`);
 		}
 	},
 	myscore: {
-
+		coolDown: 10,
+        response: ({ client, channel, tags }) => {
+			console.log($nuxt.$store.getters["trivia/scores"]);
+			console.log(tags['user-id']);
+			if ($nuxt.$store.getters["trivia/scores"][tags['user-id']]) {
+				client.say(channel, `Current Score for ${tags['display-name']}: ${$nuxt.$store.getters["trivia/scores"][tags['user-id']].score}`);
+			} else {
+				client.say(channel, `Current Score for ${tags['display-name']}: 0`);
+			}
+        }
+	},
+	help: {
+		response: ({ client, channel, tags, argument }) => {
+			if (!argument) {
+				client.say(channel, `Hey @${tags['display-name']}! I'm a trivia bot. I can do a lot of things. Here are some commands:`);
+				// client.say(channel, `!trivia - starts a trivia game.`);
+				client.say(channel, `!help trivia - shows trivia instructions.`);
+				return;
+			}
+			switch (argument) {
+				case 'trivia':
+					client.say(channel, `How to play: Chat the number of the answer you think is correct. Scores will be tallied at the end of the question time.`);
+					client.say(channel, `!trivia - starts a trivia game.`);
+					client.say(channel, `!myscore - shows your score.`);
+					break;
+			
+				default:
+					break;
+			}
+		}	
 	}
 }
 
 function coolDownTimer({command, client, channel, tags}) {
-	//FIXME undefined seconds if no scoreboard??
 	let timer = commands[command].coolDown;
 	if ($nuxt.$store.state.tmi.interval[command]) {
 		client.say(channel, `@${tags['display-name']} please wait ${$nuxt.$store.state.tmi.timer[command]} seconds before using this command again`);
-		return;
+		return true;
 	} else {
 		let interval = setInterval(() => {
 			if (timer > 0) {
@@ -136,23 +170,11 @@ function coolDownTimer({command, client, channel, tags}) {
 			}
 		}, 1000);
 		$nuxt.$store.commit('tmi/setInterval', {command, interval});
+		return false;
 	}
 }
 
 export default async function ({ store, redirect, $config, $trivia }) {
-	//follower code
-
-	const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${ $config.CHANNEL_ID }`, {
-		// credentials: 'same-origin',
-		method: 'GET',
-		// mode: 'no-cors',
-		headers: {
-			'Client-ID': $config.TWITCH_CLIENT_ID,
-			'Authorization': `Bearer ${ $config.TWITCH_APP_ACCESS_TOKEN }`
-		}
-	});
-
-	const followers = await followersResponse.json();
 
 	// trigger this as a subscription
 
@@ -174,7 +196,6 @@ export default async function ({ store, redirect, $config, $trivia }) {
 	});
 	client.connect().catch(console.error);
 	client.on('message', (channel, tags, message, self) => {
-
 		const isNotBot =
 			tags.username.toLowerCase() !== $config.twitchBotUsername
 		if (self || !isNotBot) return
@@ -187,9 +208,10 @@ export default async function ({ store, redirect, $config, $trivia }) {
 			const [raw, command, argument] = message.match(regExpCommand);
 			if (commands[command]) {
 				if (commands[command].coolDown) {
-					coolDownTimer({command, client, channel, tags});
-				}
-				if (commands[command].mod && !(tags.badges.moderator || tags.badges.broadcaster)) {
+					if (coolDownTimer({command, client, channel, tags})) return;
+				} else if (commands[command].disabled) {
+					return;
+				} else if (commands[command].mod && !(tags.badges.moderator || tags.badges.broadcaster)) {
 					console.warn(`Non-moderator tried to access moderator command: ${command}`);
 					return;
 				}
@@ -202,5 +224,4 @@ export default async function ({ store, redirect, $config, $trivia }) {
 			}
 		}
 	})
-
 }

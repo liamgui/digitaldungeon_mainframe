@@ -14,7 +14,7 @@
 						</li>
 					</ul> -->
 					<button
-						class="button has-background-white"
+						class="button has-background-white is-hidden"
 						@click="startTrivia"
 					>
 						Start Trivia!!!
@@ -22,13 +22,14 @@
 				</div>
 			</div>
 		</section>
-		<section class="trivia-box" v-if="triviaActive && trivia.length">
+		<section class="trivia-box" :class="{active: (triviaActive && trivia.length)}">
 			<div class="trivia-container">
 				<h1 class="question-number">
 					Question {{ activeQuestionNumber }}
 				</h1>
 				<!-- <TriviaQuestion v-if="activeQuestion" class="has-background-light p-5" :trivia="activeQuestion" :showAnswer="inBetweenQuestions"></TriviaQuestion> -->
-				<div :class="{ 'visible-answer': inBetweenQuestions }">
+				<!-- set also based on acceptableBuffer -->
+				<div :class="{ 'visible-answer': inBetweenQuestions && !acceptableBuffer }">
 					<h2 class="category">{{ activeQuestion.category }}</h2>
 					<p class="question">{{ activeQuestion.question }}</p>
 					<ol class="choices">
@@ -50,22 +51,51 @@
 				<p v-if="inBetweenQuestions && activeQuestionNumber < trivia.length">next question in:</p>
 				<p v-else>time left:</p>
 				<p class="count">{{ timer }}</p>
+				<p class="help is-size-5">Need help? !help trivia</p>
 			</div>
-			<div class="scores">
-				<div class="columns is-mobile">
-					<div class="column" v-for="score in scores">
-						<h2>Score:</h2>
-						<p>{{ score.username }}</p>
-						<p>{{ score.score }}</p>
+
+			<!-- SCORES -->
+			<div class="scores" v-if="scores.length">
+				<h2 class="title">Score Board Leaders:</h2>
+				<div class="columns is-vcentered legend">
+					<div class="column is-narrow">
+						<div class="logo">
+						</div>
 					</div>
-					<!-- <div class="column">
-						<h2>High Score:</h2>
-						<p>{{ highScore }}</p>
-					</div> -->
+					<div class="column">
+						<div class="username">
+							User:
+						</div>
+					</div>
+					<div class="column">
+						<div class="score">
+							Score:
+						</div>
+					</div>
+				</div>
+				<div class="leaderboard">
+					<div class="leader" v-for="score of scores">
+						<div class="columns is-vcentered">
+							<div class="column is-narrow">
+								<div class="logo">
+									<img :src="score.logo" alt="">
+								</div>
+							</div>
+							<div class="column">
+								<div class="username">
+									{{score.username}}
+								</div>
+							</div>
+							<div class="column">
+								<div class="score">
+									{{score.score}}
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</section>
-		<!-- <div class="trivia-json" v-if="trivia.length" >{{ trivia }}</div> -->
 	</main>
 </template>
 
@@ -88,7 +118,6 @@ export default {
 	},
 	computed: {
 		categories() {
-			console.log(this.$store)
 			let categories = Object.keys(
 				this.$store.getters['trivia/categories']
 			).length
@@ -129,12 +158,20 @@ export default {
 			return this.$store.state.trivia.inBetweenQuestions
 		},
 
+		acceptableBuffer() {
+			return this.$store.state.trivia.acceptableBuffer
+		},
+
 		triviaActive() {
 			return this.$store.state.trivia.triviaRunning
 		},
 
 		scores() {
-			return this.$store.state.trivia.scoreBoard
+			let leaderBoard = this.$store.getters['trivia/leaderBoard'];			
+			console.log(leaderBoard);
+			return leaderBoard;
+			// console.log(this.$store.state.trivia.scoreBoard);
+			// return this.$store.state.trivia.scoreBoard;
 		},
 	},
 	async mounted() {
@@ -142,15 +179,20 @@ export default {
 		// console.log(this.trivia);
 		this.allCategories = (
 			await this.$content('categories').fetch()
-		).categories
+		).categories;
 
+		this.$store.dispatch('trivia/loadScoreBoard');
+
+
+		// console.log((await this.$fire.firestore.collection('users').get()).docs.map(doc => doc.data()));
 		// this.$nuxt.$on('startTrivia', await $trivia.startTrivia);
 	},
 
 	methods: {
 		startTrivia() {
 			// this.$store.dispatch('trivia/setupTrivia');
-			this.$trivia.startTrivia()
+			this.$trivia.startTrivia();
+			console.log(this.$store.state.trivia.scoreBoard);
 		},
 	},
 }
@@ -207,6 +249,18 @@ ol {
 	// min-height: 650px;
 	height: 100vh;
 	position: absolute;
+	transform: translateX(-112.5%);
+	transition: transform 0.5s ease-in-out;
+	.question-number {
+		opacity: 0;
+		transition: opacity 0.5s ease-in-out;
+	}
+	&.active {
+		transform: translateX(0);
+		.question-number {
+			opacity: 1;
+		}
+	}
 }
 .trivia-container {
 	padding: 3rem;
@@ -217,7 +271,7 @@ ol {
 	display: inline;
 	position: absolute;
 	width: 100%;
-	top: -45px;
+	top: -25px;
 	right: -480px;
 	// padding-left: 2rem;
 	// padding-right: 2rem;
@@ -279,8 +333,47 @@ ol {
 }
 
 .scores {
-	position: relative;
-	left: 100%;
-	margin-left: 1rem;
+	position: absolute;
+    left: calc(100% + 4rem);
+    top: 1rem;
+    margin-left: 1rem;
+    color: #36f8ff;
+	padding: 1.5rem;
+	background: rgba(darken($dungeon-color, 75%), 0.5);
+
+	.title {
+		color: $dungeon-color;
+	}
+	.legend {
+		margin-bottom: 0;
+		display: none;
+	}
+	.leaderboard {
+		margin-top: 1rem;
+	}
+	.leader {
+		// background: gray;
+		border-top: 1px solid $dungeon-color;
+		border-bottom: 1px solid $dungeon-color;
+		padding: 1rem;
+	}
+	.logo {
+		width: 3rem;
+		height: 3rem;
+		border-radius: 100%;
+		overflow: hidden;
+	}
+	.username,
+	.score {
+		font-weight: bold;
+		font-size: 1.5rem;
+		text-align: center;
+	}
+	.leader {
+		.username,
+		.score {
+			margin-bottom: 0.5rem;
+		}
+	}
 }
 </style>

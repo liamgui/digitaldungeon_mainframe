@@ -1,9 +1,13 @@
 // import { Categories } from ""
 
-export default function({store}, inject) {
+export default function({store, $config}, inject) {
 	// console.log($emit);
 	let timerCount = 15;
+	let debug = false;
+	let debugTimer = 1;
 	let offTimerCount = 7;
+	let acceptableBufferTime = 2;
+		
 	const Trivia = {
 
 		getTrivia: async () => {
@@ -33,17 +37,19 @@ export default function({store}, inject) {
 		},
 
 		startTrivia: async () => {
+			if (store.state.trivia.triviaRunning) {
+				return;
+			}
+
 			store.commit('trivia/removeInterval');
-			if (!store.state.trivia.isTriviaRunning) { 
+			if (!store.state.trivia.triviaRunning) { 
 				store.commit('trivia/resetTrivia');
 			}
 
 			// interval?
 			//get trivia
-			console.log('get trivia');
 			await store.dispatch('trivia/setupTrivia');
 			//if trivia is empty??
-			console.log(store.getters['trivia/trivia']);
 			if (!store.getters['trivia/trivia']) return;
 
 			let activeQuestion = store.state.trivia.activeQuestion;
@@ -61,6 +67,10 @@ export default function({store}, inject) {
 			let interval = setInterval(() => {
 				if (store.state.trivia.questionsRemaining > 0) {
 					if (store.state.trivia.timer > 0) {
+						if (store.state.trivia.inBetweenQuestions && store.state.trivia.acceptableBuffer && store.state.trivia.timer <= offTimerCount - acceptableBufferTime) {
+							Trivia.calcScores();
+							store.commit('trivia/toggleAcceptableBuffer');
+						}
 						let timer = store.state.trivia.timer - 1;
 						store.commit('trivia/setTimer', timer);
 					} else {
@@ -68,41 +78,14 @@ export default function({store}, inject) {
 						if (store.state.trivia.inBetweenQuestions) {
 							//if in between questions
 							store.commit('trivia/setTimer', offTimerCount);
-
-							// check answers and tally scores
-							let answersState = store.state.trivia.answersState;
-							if (Object.keys(answersState).length !== 0) {
-								for (let userId in answersState) {
-									let user = answersState[userId];
-									let score = 0;
-									if (user.answer === (store.state.trivia.activeQuestion.choices.indexOf(store.state.trivia.activeQuestion.correctAnswer) + 1)) {
-										score++;
-									}
-									store.commit('trivia/setScore', { userId, score, username: user.username });
-
-
-									///////////////////////////////////
-									// let answer = $nuxt.$store.state.trivia.activeQuestion.choices.indexOf($nuxt.$store.activeQuestion.correctAnswer);
-									// if ((answer + 1) == parseInt(argument)) {
-										// $nuxt.$store.commit('trivia/addScore', {
-										// 	user: tags['user-id'],
-										// 	score: 1,
-										// 	username: tags.username
-										// })
-									// 	client.say(channel, `${tags.username} is correct!`)
-									// }
-								}
-							}
-							store.commit('trivia/resetAnswersState');
-							console.log(store.state.trivia.scoreBoard);
 						} else {
+							store.commit('trivia/toggleAcceptableBuffer');
 							let questionsRemaining = store.state.trivia.questionsRemaining - 1;
 							store.commit('trivia/setQuestionsRemaining', questionsRemaining);
 							if (store.state.trivia.questionsRemaining != 0) {
 								// new active question
 								// store.commit('trivia/setActiveQuestionNumber', activeQuestionNo++);
 								let nextQuestion = store.state.trivia.trivia[store.state.trivia.trivia.length - store.state.trivia.questionsRemaining];
-								console.log(nextQuestion);
 								store.commit('trivia/setActiveQuestion', nextQuestion);
 								// check how long question is and set timer accordingly
 								Trivia.calculateTime();
@@ -110,14 +93,15 @@ export default function({store}, inject) {
 								clearInterval(interval);
 								console.log('interval cleared')
 								store.commit('trivia/toggleTriviaState');
+								store.dispatch('trivia/saveScoreBoard');
 							}
 						}
 					}
 				} else {
-					console.log(store.state.trivia.interval);
 					clearInterval(store.state.trivia.interval);
 					store.commit('trivia/storeInterval', null);
 					store.commit('trivia/resetTrivia');
+					store.dispatch('trivia/saveScoreBoard');
 				}
 				// console.log(this.timer);
 			}, 1000)
@@ -128,8 +112,11 @@ export default function({store}, inject) {
 		runTimer() {
 			
 		},
-		//FIXME add 3 more seconds after timer has "ended" in order to catch slower internet connections
 		calculateTime() {
+			if (debug) {
+				store.commit('trivia/setTimer', debugTimer);
+				return;
+			}
 			let wordCountQuestion = store.state.trivia.activeQuestion.question.split(' ');
 			let wordCountAnswers = store.state.trivia.activeQuestion.choices.join(' ').split(' ');
 			let modifiedTimerCount = timerCount;
@@ -138,6 +125,7 @@ export default function({store}, inject) {
 				modifiedTimerCount = modifiedTimerCount > 60 ? 60 : modifiedTimerCount;
 			}
 			store.commit('trivia/setTimer', (modifiedTimerCount));
+			return;
 		},
 
 		getChoices(incorrect, correct) {
@@ -167,6 +155,33 @@ export default function({store}, inject) {
 
 			return array
 		},
+		async getUser(login) {
+			let user = await (await fetch(`https://api.twitch.tv/helix/users?login=${login}`, {
+				method: 'GET',
+				headers: {
+					'Client-ID': $config.TWITCH_CLIENT_ID,
+					'Authorization': `Bearer ${ $config.TWITCH_APP_ACCESS_TOKEN }`
+				}
+			})).json();
+			return user;
+		},
+		async calcScores() {
+			// check answers and tally scores
+			let answersState = store.state.trivia.answersState;
+			if (Object.keys(answersState).length !== 0) {
+				for (let userId in answersState) {
+					let user = answersState[userId];
+					let score = 0;
+					if (user.answer === (store.state.trivia.activeQuestion.choices.indexOf(store.state.trivia.activeQuestion.correctAnswer) + 1)) {
+						score = 1;
+					}
+					store.dispatch('trivia/storeScore', { userId, score, username: user.username });
+
+				}
+			}
+			store.dispatch('trivia/saveScoreBoard');
+			store.commit('trivia/resetAnswersState');
+		}
 	}
 
 	inject('trivia', Trivia);
