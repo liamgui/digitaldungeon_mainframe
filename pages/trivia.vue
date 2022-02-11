@@ -103,7 +103,7 @@
 export default {
 	name: 'Trivia',
 	layout: 'blank',
-	middleware: ['tmi'],
+	// middleware: ['tmi'],
 	data: () => {
 		return {
 			// trivia: [],
