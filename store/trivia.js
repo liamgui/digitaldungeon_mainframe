@@ -1,13 +1,7 @@
 export const state = () => ({
 	categories: {},
 	triviaRunning: false,
-	scoreBoard: {
-		
-		// 147224254: {
-		// 	score: 0,
-		// 	username: 'Digital_Fortress'
-		// }
-	},
+	scoreBoard: {},
 	answersState: {},
 	activeQuestion: {
 		question: '',
@@ -24,30 +18,26 @@ export const state = () => ({
 	inBetweenQuestions: false,
 	acceptableBuffer: true,
 	questionsRemaining: null,
+	scoreBoardVisible: false
 });
 
 export const mutations = {
 
 	addCategory(state, category) {
+		console.log(category);
 		if (!state.categories[category]) {
-			state.categories[category] = Object.values(category);
+			state.categories = {
+				...state.categories,
+				...category
+			}
 		}
 	},
 
 	removeCategory(state, category) {
 		if (state.categories[category]) {
 			//find index of category in categories
-			//slice from that index, 1
 			delete state.categories[category];
 		}
-	},
-
-	addScore(state, { user, score, username }) {
-		// add score to user in scoreBoard
-		if (!state.scoreBoard[user]) {
-			state.scoreBoard[user] = 0;
-		}
-		state.scoreBoard[user] += score;
 	},
 
 	clearScoreBoard(state) {
@@ -72,6 +62,13 @@ export const mutations = {
 		// state.scoreBoard = scoreBoard;
 	},
 
+	showScores(state) {
+		state.scoreBoardVisible = true;
+	},
+	hideScores(state) {
+		state.scoreBoardVisible = false;
+	},
+	
 	setAnswer(state, { userId, answer, username }) {
 		state.answersState[userId] = {answer, username};
 	},
@@ -214,9 +211,3 @@ export const actions = {
 		commit('setScore', {userId, score, username, logo});
 	}
 }
-
-// FIXME loadScoreBoard - setScoreBoard broken
-
-// FIXME categories isn't working
-
-

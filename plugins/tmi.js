@@ -69,7 +69,7 @@ const commands = {
 		},
 	},
 	category: {
-		// mod: true,
+		mod: true,
 		response: async ({ client, channel, argument }) => {
 			// let argument = "food";
 			let categoryTypes = (await $nuxt.$content('categories').fetch()).categories;
@@ -113,23 +113,24 @@ const commands = {
 	},
 	scores: {
 		mod: true,
-		coolDown: 10,
-		disabled: true,
-		response: ({ client, channel, tags, command }) => {
-			let scores = $nuxt.$store.getters["trivia/scores"];
-			let scoresArray = Object.values(scores);
+		coolDown: 15,
+		// disabled: true,
+		response: () => {
+			$nuxt.$store.commit('trivia/showScores');
+			setTimeout(() => {
+				$nuxt.$store.commit('trivia/hideScores');
+			}, commands.scores.coolDown * 1000);
 		}
 	},
 	myscore: {
 		coolDown: 10,
         response: ({ client, channel, tags }) => {
-			console.log($nuxt.$store.getters["trivia/scores"]);
-			console.log(tags['user-id']);
-			if ($nuxt.$store.getters["trivia/scores"][tags['user-id']]) {
-				client.say(channel, `Current Score for ${tags['display-name']}: ${$nuxt.$store.getters["trivia/scores"][tags['user-id']].score}`);
-			} else {
-				client.say(channel, `Current Score for ${tags['display-name']}: 0`);
+			let score = 0;
+			if ($nuxt.$store.getters["trivia/scores"][tags['user-id']]) {			
+				score = $nuxt.$store.getters["trivia/scores"][tags['user-id']].score;
 			}
+			
+			client.say(channel, `Current Score for @${tags['display-name']}: ${score}`);
         }
 	},
 	help: {
