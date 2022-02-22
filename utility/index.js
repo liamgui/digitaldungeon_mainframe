@@ -1,8 +1,7 @@
 
 export function filterByValue(haystack, needle) {
 	let haystackArray = Object.values(haystack); 
-	
-	const filtered = Object.entries(haystack).filter(([key, value]) => value.includes(needle));
+	const filtered = Object.entries(haystack).filter(([key, value]) => value.toLowerCase().includes(needle.toLowerCase()));
 	return Object.fromEntries(filtered);
 }
 

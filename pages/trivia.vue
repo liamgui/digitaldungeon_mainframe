@@ -55,7 +55,7 @@
 			</div>
 
 			<!-- SCORES -->
-			<div class="scores" v-if="scores.length">
+			<div class="scores" v-if="scores.length && (triviaActive || showScoreboard)">
 				<h2 class="title">Score Board Leaders:</h2>
 				<div class="columns is-vcentered legend">
 					<div class="column is-narrow">
@@ -164,6 +164,10 @@ export default {
 
 		triviaActive() {
 			return this.$store.state.trivia.triviaRunning
+		},
+
+		showScoreboard() {
+			return this.$store.state.trivia.scoreBoardVisible
 		},
 
 		scores() {
@@ -339,7 +343,8 @@ ol {
     margin-left: 1rem;
     color: #36f8ff;
 	padding: 1.5rem;
-	background: rgba(darken($dungeon-color, 75%), 0.5);
+	background: rgba(darken($dungeon-color, 50%), 1);
+	box-shadow: 0 0 7px rgba(0, 0, 0, 0.5);
 
 	.title {
 		color: $dungeon-color;

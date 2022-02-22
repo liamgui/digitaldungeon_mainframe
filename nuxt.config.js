@@ -26,18 +26,18 @@ export default {
 	// Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
 	plugins: [
 		'~/plugins/trivia.js',
-		'~/plugins/objectives.js',
+		// '~/plugins/objectives.js',
 		'~/plugins/tmi.js'
 	],
 	serverMiddleware: [
-		{
-			path: '/webhooks/objectives',
-			handler: '~/server-middleware/webhookObjectives',
-		},
-		{
-			path: '/api/objectives',
-			handler: '~/server-middleware/objectives',
-		},
+		// {
+		// 	path: '/webhooks/objectives',
+		// 	handler: '~/server-middleware/webhookObjectives',
+		// },
+		// {
+		// 	path: '/api/objectives',
+		// 	handler: '~/server-middleware/objectives',
+		// },
 	],
 	// Auto import components: https://go.nuxtjs.dev/config-components
 	components: true,

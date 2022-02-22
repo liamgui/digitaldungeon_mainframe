@@ -21,4 +21,5 @@ export default async function ({store, axios}) {
 		store.commit('objectives/setList', data.list);
 		store.commit('objectives/setLabels', data.labels);
 	});
+
 }
