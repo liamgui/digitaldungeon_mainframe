@@ -3,7 +3,6 @@
 export default function({store, $config}, inject) {
 	// console.log($emit);
 	let timerCount = 15;
-	let debug = false;
 	let debugTimer = 1;
 	let offTimerCount = 7;
 	let acceptableBufferTime = 2;
@@ -68,8 +67,8 @@ export default function({store, $config}, inject) {
 				if (store.state.trivia.questionsRemaining > 0) {
 					if (store.state.trivia.timer > 0) {
 						if (store.state.trivia.inBetweenQuestions && store.state.trivia.acceptableBuffer && store.state.trivia.timer <= offTimerCount - acceptableBufferTime) {
-							Trivia.calcScores();
 							store.commit('trivia/toggleAcceptableBuffer');
+							Trivia.calcScores();
 						}
 						let timer = store.state.trivia.timer - 1;
 						store.commit('trivia/setTimer', timer);
@@ -113,7 +112,7 @@ export default function({store, $config}, inject) {
 			
 		},
 		calculateTime() {
-			if (debug) {
+			if (process.env.debug) {
 				store.commit('trivia/setTimer', debugTimer);
 				return;
 			}
@@ -175,7 +174,7 @@ export default function({store, $config}, inject) {
 					if (user.answer === (store.state.trivia.activeQuestion.choices.indexOf(store.state.trivia.activeQuestion.correctAnswer) + 1)) {
 						score = 1;
 					}
-					store.dispatch('trivia/storeScore', { userId, score, username: user.username });
+					await store.dispatch('trivia/storeScore', { userId, score, username: user.username });
 
 				}
 			}

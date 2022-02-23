@@ -113,4 +113,8 @@ export default {
 		trelloSecretToken: process.env.TRELLO_TOKEN,
 		trelloKey: process.env.TRELLO_KEY,
 	},
+
+	env: {
+		debug: process.env.DEBUG || false
+	}
 }
